@@ -1,3 +1,7 @@
+//! Timestamps for camera images.
+//!
+//! Timestamps are contained in `.eif` files, usually residing in `04_CAM_RAW/01_EIF`.
+
 use std::path::PathBuf;
 
 /// Configuration for timestamps.

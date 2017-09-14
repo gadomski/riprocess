@@ -101,6 +101,7 @@ mod tests {
     use super::*;
 
     #[test]
+    #[ignore]
     fn image_list() {
         let config = Config::from_path("data/config.toml").unwrap();
         let images = config.image_list().unwrap().collect::<Vec<_>>();
@@ -119,6 +120,7 @@ mod tests {
     }
 
     #[test]
+    #[ignore]
     fn record_count_mismatch() {
         let mut config = Config::from_path("data/config.toml").unwrap();
         config.records.start_times = vec![1.];
@@ -126,6 +128,7 @@ mod tests {
     }
 
     #[test]
+    #[ignore]
     fn image_count_mismatch() {
         let mut config = Config::from_path("data/config.toml").unwrap();
         config.images.last = None;
@@ -133,6 +136,7 @@ mod tests {
     }
 
     #[test]
+    #[ignore]
     fn no_images() {
         let mut config = Config::from_path("data/config.toml").unwrap();
         config.images.path = "data".into();
