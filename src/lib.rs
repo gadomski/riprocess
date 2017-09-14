@@ -29,6 +29,10 @@ pub use config::Config;
 /// Our custom error enum.
 #[derive(Debug)]
 pub enum Error {
+    /// The image number, as provided in configuration, is invalid.
+    ///
+    /// Usually means that there wasn't a file with that image number.
+    InvalidImageNumber(usize),
     /// Wrapper around `std::io::Error`.
     Io(std::io::Error),
     /// The are no images with the expected naming structure in the provided path.

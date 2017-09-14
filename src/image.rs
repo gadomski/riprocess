@@ -53,41 +53,56 @@ impl Config {
     /// let paths = config.paths().unwrap();
     /// ```
     pub fn paths(&self) -> Result<Vec<PathBuf>> {
+        use Error;
         use std::fs::DirEntry;
         use std::io::Result;
 
-        let select_paths = |result: Result<DirEntry>| match result {
-            Ok(dir_entry) => {
-                if self.is_included_file_name(&dir_entry.file_name()) {
-                    Some(dir_entry.path())
-                } else {
+        let mut image_numbers = Vec::new();
+        let paths: Vec<PathBuf>;
+        {
+            let select_paths = |result: Result<DirEntry>| match result {
+                Ok(dir_entry) => {
+                    if let Some(image_number) = self.extract_image_number(&dir_entry.file_name()) {
+                        image_numbers.push(image_number);
+                        if self.is_image_number_in_range(image_number) {
+                            return Some(dir_entry.path());
+                        }
+                    }
                     None
                 }
+                Err(_) => None,
+            };
+            paths = self.path
+                .read_dir()?
+                .filter_map(select_paths)
+                .collect();
+        }
+        if let Some(start) = self.start {
+            if !image_numbers.contains(&start) {
+                return Err(Error::InvalidImageNumber(start));
             }
-            Err(_) => None,
-        };
-
-        Ok(self.path
-               .read_dir()?
-               .filter_map(select_paths)
-               .collect())
+        }
+        if let Some(end) = self.end {
+            if !image_numbers.contains(&end) {
+                return Err(Error::InvalidImageNumber(end));
+            }
+        }
+        Ok(paths)
     }
 
-    fn is_included_file_name(&self, file_name: &OsStr) -> bool {
+    fn extract_image_number(&self, file_name: &OsStr) -> Option<usize> {
         file_name.to_str()
             .and_then(|file_name| FILENAME_REGEX.captures(file_name))
             .map(|captures| {
-                let image_number: usize = captures.name("image_number")
+                captures.name("image_number")
                     .expect("FILENAME_REGEX should have an image_number named pattern")
                     .as_str()
                     .parse()
-                    .expect("\\d{5} should always parse to a usize");
-                self.image_number_in_range(image_number)
+                    .expect("\\d{5} should always parse to a usize")
             })
-            .unwrap_or(false)
     }
 
-    fn image_number_in_range(&self, image_number: usize) -> bool {
+    fn is_image_number_in_range(&self, image_number: usize) -> bool {
         self.start.map(|start| start <= image_number).unwrap_or(true) &&
         self.end.map(|end| end >= image_number).unwrap_or(true)
     }
@@ -117,5 +132,35 @@ mod tests {
             end: None,
         };
         assert_eq!(6, config.paths().unwrap().len());
+    }
+
+    #[test]
+    fn end() {
+        let config = Config {
+            path: "data/images".into(),
+            start: None,
+            end: Some(3522),
+        };
+        assert_eq!(2, config.paths().unwrap().len());
+    }
+
+    #[test]
+    fn start_out_of_range() {
+        let config = Config {
+            path: "data/images".into(),
+            start: Some(3520),
+            end: None,
+        };
+        assert!(config.paths().is_err());
+    }
+
+    #[test]
+    fn end_out_of_range() {
+        let config = Config {
+            path: "data/images".into(),
+            start: None,
+            end: Some(3428),
+        };
+        assert!(config.paths().is_err());
     }
 }
