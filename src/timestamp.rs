@@ -5,7 +5,7 @@
 use Result;
 use regex::Regex;
 use std::ffi::OsStr;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 lazy_static! {
     static ref FILE_NAME_REGEX: Regex = Regex::new(r"^\d{6}_\d{6}.eif$").unwrap();
@@ -75,6 +75,19 @@ impl Config {
         Ok(paths)
     }
 
+    /// Returns the timestamps in each configured timestamp file.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use riprocess::timestamp::Config;
+    /// let config = Config { path: "data/timestamps".into(), ..Default::default() };
+    /// let timestamps = config.timestamps().unwrap();
+    /// ```
+    pub fn timestamps(&self) -> Result<Vec<Vec<f64>>> {
+        self.paths().and_then(|paths| paths.into_iter().map(read_timestamps).collect())
+    }
+
     fn file_name_is_in_range(&self, file_name: &OsStr) -> bool {
         file_name.to_str()
             .map(|file_name| {
@@ -93,6 +106,20 @@ impl Config {
 
 fn file_name_is_match(file_name: &OsStr) -> bool {
     file_name.to_str().map(|file_name| FILE_NAME_REGEX.is_match(file_name)).unwrap_or(false)
+}
+
+fn read_timestamps<P: AsRef<Path>>(path: P) -> Result<Vec<f64>> {
+    use Error;
+    use std::fs::File;
+    use std::io::{BufRead, BufReader};
+
+    let file = File::open(path)?;
+    BufReader::new(file)
+        .lines()
+        .map(|result| {
+                 result.map_err(Error::from).and_then(|line| line.parse().map_err(Error::from))
+             })
+        .collect()
 }
 
 #[cfg(test)]
@@ -157,5 +184,18 @@ mod tests {
             end: Some("not a timestamp file".to_string()),
         };
         assert!(config.paths().is_err());
+    }
+
+    #[test]
+    fn timestamps() {
+        let config = Config {
+            path: "data/timestamps".into(),
+            start: None,
+            end: Some("170621_202939.eif".to_string()),
+        };
+        let timestamps = config.timestamps().unwrap();
+        assert_eq!(vec![vec![73779.899441, 73781.419326, 73782.899381],
+                        vec![73779.899441, 73781.419326]],
+                   timestamps);
     }
 }
