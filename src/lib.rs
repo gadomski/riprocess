@@ -39,6 +39,8 @@ pub enum Error {
     Io(std::io::Error),
     /// The are no images with the expected naming structure in the provided path.
     NoImages(std::path::PathBuf),
+    /// There are no timestamps in this timestamp record.
+    NoTimestamps,
     /// Wrapper around `std::num::ParseFloatError`.
     ParseFloat(std::num::ParseFloatError),
     /// Wrapper around `std::num::ParseIntError`.

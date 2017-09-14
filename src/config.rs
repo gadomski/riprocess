@@ -80,6 +80,10 @@ impl Config {
     /// let image_list = config.image_list().unwrap().collect::<Vec<_>>();
     /// ```
     pub fn image_list(&self) -> Result<ImageList> {
+        let _ = self.images.paths()?;
+        let _ = self.timestamps
+            .timestamps()
+            .and_then(|timestamps| self.records.adjust_timestamps(&timestamps))?;
         unimplemented!()
     }
 }
