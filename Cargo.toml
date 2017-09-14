@@ -4,8 +4,9 @@ version = "0.1.0"
 authors = ["Pete Gadomski <pete.gadomski@gmail.com>"]
 
 [dependencies]
-lazy_static = "*"
-regex = "*"
+docopt = "0.8"
+lazy_static = "0.2"
+regex = "0.2"
 serde = "1.0"
 serde_derive = "1.0"
 toml = "0.4"
