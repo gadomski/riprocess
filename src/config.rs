@@ -160,6 +160,19 @@ impl Config {
             .and_then(|read_dir| read_dir.filter_map(select_paths).collect())
     }
 
+    /// Returns a vector of all paths to timestamp (.eif) files, as configured.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use riprocess::Config;
+    /// let config = Config::from_path("data/config.toml").unwrap();
+    /// let timestamp_paths = config.timestamp_paths().unwrap();
+    /// ```
+    pub fn timestamp_paths(&self) -> Result<Vec<PathBuf>> {
+        Ok(Vec::new())
+    }
+
     /// Returns an iterator over timestamp+path pairs for each configued image.
     ///
     /// Errors occur when the number of timestamp files doesn't match the number of records or the
@@ -248,5 +261,38 @@ mod tests {
 
         config.images.last_image_number = Some(3526);
         assert_eq!(5, config.image_paths().unwrap().len());
+
+        config.images.first_image_number = Some(42);
+        config.images.last_image_number = None;
+        assert!(config.image_paths().is_err());
+
+        config.images.first_image_number = None;
+        config.images.last_image_number = Some(42);
+        assert!(config.image_paths().is_err());
+    }
+
+    #[test]
+    #[ignore]
+    fn timestamp_paths() {
+        let mut config = Config::new();
+        config.timestamps.path = "data".into();
+        assert!(config.timestamp_paths().unwrap().is_empty());
+
+        config.timestamps.path = "data/timestamps".into();
+        assert_eq!(4, config.timestamp_paths().unwrap().len());
+
+        config.timestamps.first_timestamp_file_name = Some("170621_202939.eif".to_string());
+        assert_eq!(3, config.timestamp_paths().unwrap().len());
+
+        config.timestamps.last_timestamp_file_name = Some("170621_203040.eif".to_string());
+        assert_eq!(2, config.timestamp_paths().unwrap().len());
+
+        config.timestamps.first_timestamp_file_name = Some("not a timestamp file".to_string());
+        config.timestamps.last_timestamp_file_name = None;
+        assert!(config.timestamp_paths().is_err());
+
+        config.timestamps.first_timestamp_file_name = None;
+        config.timestamps.last_timestamp_file_name = Some("not a timestamp file".to_string());
+        assert!(config.timestamp_paths().is_err());
     }
 }
