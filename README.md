@@ -11,7 +11,7 @@ To download and install the included executable, you'll need [cargo](https://www
 Then, install from Github:
 
 ```bash
-cargo install --git https://github.com/gadomski/RiPROCESS
+cargo install --git https://github.com/gadomski/riprocess
 ```
 
 ## Usage
