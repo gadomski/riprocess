@@ -75,6 +75,7 @@ impl Config {
                 Err(_) => None,
             };
             paths = self.path
+                .canonicalize()?
                 .read_dir()?
                 .filter_map(select_paths)
                 .collect();
