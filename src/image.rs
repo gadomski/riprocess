@@ -9,7 +9,9 @@ use std::ffi::OsStr;
 use std::path::PathBuf;
 
 lazy_static! {
-    static ref FILENAME_REGEX: Regex = Regex::new(r"^DSC(?P<image_number>\d{5}).JPG$").unwrap();
+    /// The filename regex for image files, as they come off of our RiCOPTER system.
+    #[derive(Debug)]
+    pub static ref FilenameRegex: Regex = Regex::new(r"^DSC(?P<image_number>\d{5}).JPG$").unwrap();
 }
 
 /// Configuration for a set of images.
@@ -42,15 +44,17 @@ impl Config {
 
     /// Returns the image paths for this configuration.
     ///
-    /// The paths can be limited by the `first` and `last` attributes of the configuration. If the
-    /// `first` or `last` values do not exist in the image directory, an error is returned.
+    /// The paths can be limited by the `start` and `end` attributes of the configuration. If the
+    /// `start` or `end` values do not exist in the image directory, an error is returned.
     ///
     /// # Examples
     ///
     /// ```
     /// use riprocess::image::Config;
-    /// let config = Config { path: "data/images".into(), ..Default::default() };
+    /// let mut config = Config { path: "data/images".into(), ..Default::default() };
     /// let paths = config.paths().unwrap();
+    /// config.start = Some(4242); // <- not a image number in the directory
+    /// assert!(config.paths().is_err());
     /// ```
     pub fn paths(&self) -> Result<Vec<PathBuf>> {
         use Error;
@@ -58,7 +62,7 @@ impl Config {
         use std::io::Result;
 
         let mut image_numbers = Vec::new();
-        let paths: Vec<PathBuf>;
+        let mut paths: Vec<PathBuf>;
         {
             let select_paths = |result: Result<DirEntry>| match result {
                 Ok(dir_entry) => {
@@ -87,15 +91,16 @@ impl Config {
                 return Err(Error::InvalidImageNumber(end));
             }
         }
+        paths.sort();
         Ok(paths)
     }
 
     fn extract_image_number(&self, file_name: &OsStr) -> Option<usize> {
         file_name.to_str()
-            .and_then(|file_name| FILENAME_REGEX.captures(file_name))
+            .and_then(|file_name| FilenameRegex.captures(file_name))
             .map(|captures| {
                 captures.name("image_number")
-                    .expect("FILENAME_REGEX should have an image_number named pattern")
+                    .expect("FilenameRegex should have an image_number named pattern")
                     .as_str()
                     .parse()
                     .expect("\\d{5} should always parse to a usize")
