@@ -9,9 +9,7 @@ use std::ffi::OsStr;
 use std::path::PathBuf;
 
 lazy_static! {
-    /// The filename regex for image files, as they come off of our RiCOPTER system.
-    #[derive(Debug)]
-    pub static ref FilenameRegex: Regex = Regex::new(r"^DSC(?P<image_number>\d{5}).JPG$").unwrap();
+    static ref FILE_NAME_REGEX: Regex = Regex::new(r"^DSC(?P<image_number>\d{5}).JPG$").unwrap();
 }
 
 /// Configuration for a set of images.
@@ -66,9 +64,9 @@ impl Config {
         {
             let select_paths = |result: Result<DirEntry>| match result {
                 Ok(dir_entry) => {
-                    if let Some(image_number) = self.extract_image_number(&dir_entry.file_name()) {
+                    if let Some(image_number) = extract_image_number(&dir_entry.file_name()) {
                         image_numbers.push(image_number);
-                        if self.is_image_number_in_range(image_number) {
+                        if self.image_number_is_in_range(image_number) {
                             return Some(dir_entry.path());
                         }
                     }
@@ -95,22 +93,22 @@ impl Config {
         Ok(paths)
     }
 
-    fn extract_image_number(&self, file_name: &OsStr) -> Option<usize> {
-        file_name.to_str()
-            .and_then(|file_name| FilenameRegex.captures(file_name))
-            .map(|captures| {
-                captures.name("image_number")
-                    .expect("FilenameRegex should have an image_number named pattern")
-                    .as_str()
-                    .parse()
-                    .expect("\\d{5} should always parse to a usize")
-            })
-    }
-
-    fn is_image_number_in_range(&self, image_number: usize) -> bool {
+    fn image_number_is_in_range(&self, image_number: usize) -> bool {
         self.start.map(|start| start <= image_number).unwrap_or(true) &&
         self.end.map(|end| end >= image_number).unwrap_or(true)
     }
+}
+
+fn extract_image_number(file_name: &OsStr) -> Option<usize> {
+    file_name.to_str()
+        .and_then(|file_name| FILE_NAME_REGEX.captures(file_name))
+        .map(|captures| {
+            captures.name("image_number")
+                .expect("FILE_NAME_REGEX should have an image_number named pattern")
+                .as_str()
+                .parse()
+                .expect("\\d{5} should always parse to a usize")
+        })
 }
 
 #[cfg(test)]
