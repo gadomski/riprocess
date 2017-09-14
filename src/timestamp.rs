@@ -37,25 +37,40 @@ impl Config {
     /// let paths = config.paths().unwrap();
     /// ```
     pub fn paths(&self) -> Result<Vec<PathBuf>> {
+        use Error;
         use std::fs::DirEntry;
         use std::io::Result;
 
+        let mut file_names = Vec::new();
         let mut paths: Vec<PathBuf>;
-        let select_paths = |result: Result<DirEntry>| match result {
-            Ok(dir_entry) => {
-                let file_name = dir_entry.file_name();
-                if file_name_is_match(&file_name) && self.file_name_is_in_range(&file_name) {
-                    Some(dir_entry.path())
-                } else {
-                    None
+        {
+            let select_paths = |result: Result<DirEntry>| match result {
+                Ok(dir_entry) => {
+                    let file_name = dir_entry.file_name();
+                    if file_name_is_match(&file_name) && self.file_name_is_in_range(&file_name) {
+                        file_names.push(file_name.to_string_lossy().into_owned());
+                        Some(dir_entry.path())
+                    } else {
+                        None
+                    }
                 }
+                Err(_) => None,
+            };
+            paths = self.path
+                .read_dir()?
+                .filter_map(select_paths)
+                .collect();
+        }
+        if let Some(start) = self.start.as_ref() {
+            if !file_names.contains(start) {
+                return Err(Error::InvalidTimestampFileName(start.clone()));
             }
-            Err(_) => None,
-        };
-        paths = self.path
-            .read_dir()?
-            .filter_map(select_paths)
-            .collect();
+        }
+        if let Some(end) = self.end.as_ref() {
+            if !file_names.contains(&end) {
+                return Err(Error::InvalidTimestampFileName(end.clone()));
+            }
+        }
         paths.sort();
         Ok(paths)
     }
@@ -122,5 +137,25 @@ mod tests {
             end: Some("170621_202939.eif".to_string()),
         };
         assert_eq!(2, config.paths().unwrap().len());
+    }
+
+    #[test]
+    fn invalid_start() {
+        let config = Config {
+            path: "data/timestamps".into(),
+            start: Some("not a timestamp file".to_string()),
+            end: None,
+        };
+        assert!(config.paths().is_err());
+    }
+
+    #[test]
+    fn invalid_end() {
+        let config = Config {
+            path: "data/timestamps".into(),
+            start: None,
+            end: Some("not a timestamp file".to_string()),
+        };
+        assert!(config.paths().is_err());
     }
 }

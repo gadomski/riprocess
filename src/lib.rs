@@ -33,6 +33,8 @@ pub enum Error {
     ///
     /// Usually means that there wasn't a file with that image number.
     InvalidImageNumber(usize),
+    /// The timestamp filename, as provided in configuration, is not a valid file name.
+    InvalidTimestampFileName(String),
     /// Wrapper around `std::io::Error`.
     Io(std::io::Error),
     /// The are no images with the expected naming structure in the provided path.
