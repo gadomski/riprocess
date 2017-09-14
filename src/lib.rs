@@ -24,7 +24,7 @@ pub mod image;
 pub mod record;
 pub mod timestamp;
 
-pub use config::Config;
+pub use config::{Config, Image, ImageList};
 
 /// Our custom error enum.
 #[derive(Debug)]
