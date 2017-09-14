@@ -131,7 +131,7 @@ mod tests {
     #[ignore]
     fn image_count_mismatch() {
         let mut config = Config::from_path("data/config.toml").unwrap();
-        config.images.last = None;
+        config.images.end = None;
         assert!(config.image_list().is_err());
     }
 
@@ -140,8 +140,8 @@ mod tests {
     fn no_images() {
         let mut config = Config::from_path("data/config.toml").unwrap();
         config.images.path = "data".into();
-        config.images.first = None;
-        config.images.last = None;
+        config.images.start = None;
+        config.images.end = None;
         assert!(config.image_list().is_err());
     }
 }

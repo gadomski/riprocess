@@ -5,10 +5,11 @@
 
 use Result;
 use regex::Regex;
+use std::ffi::OsStr;
 use std::path::PathBuf;
 
 lazy_static! {
-    static ref FILENAME_REGEX: Regex = Regex::new(r"^DSC\d{5}.JPG$").unwrap();
+    static ref FILENAME_REGEX: Regex = Regex::new(r"^DSC(?P<image_number>\d{5}).JPG$").unwrap();
 }
 
 /// Configuration for a set of images.
@@ -19,11 +20,11 @@ pub struct Config {
     /// The number of the first image to be used.
     ///
     /// If None, the first image in the directory is used.
-    pub first: Option<usize>,
+    pub start: Option<usize>,
     /// The number of the last image to be used.
     ///
     /// If none, the last image in the directory is used.
-    pub last: Option<usize>,
+    pub end: Option<usize>,
 }
 
 impl Config {
@@ -57,7 +58,7 @@ impl Config {
 
         let select_paths = |result: Result<DirEntry>| match result {
             Ok(dir_entry) => {
-                if FILENAME_REGEX.is_match(&dir_entry.file_name().to_string_lossy().into_owned()) {
+                if self.is_included_file_name(&dir_entry.file_name()) {
                     Some(dir_entry.path())
                 } else {
                     None
@@ -65,10 +66,30 @@ impl Config {
             }
             Err(_) => None,
         };
+
         Ok(self.path
                .read_dir()?
                .filter_map(select_paths)
                .collect())
+    }
+
+    fn is_included_file_name(&self, file_name: &OsStr) -> bool {
+        file_name.to_str()
+            .and_then(|file_name| FILENAME_REGEX.captures(file_name))
+            .map(|captures| {
+                let image_number: usize = captures.name("image_number")
+                    .expect("FILENAME_REGEX should have an image_number named pattern")
+                    .as_str()
+                    .parse()
+                    .expect("\\d{5} should always parse to a usize");
+                self.image_number_in_range(image_number)
+            })
+            .unwrap_or(false)
+    }
+
+    fn image_number_in_range(&self, image_number: usize) -> bool {
+        self.start.map(|start| start <= image_number).unwrap_or(true) &&
+        self.end.map(|end| end >= image_number).unwrap_or(true)
     }
 }
 
@@ -86,5 +107,15 @@ mod tests {
     fn all_images() {
         let config = Config { path: "data/images".into(), ..Default::default() };
         assert_eq!(7, config.paths().unwrap().len());
+    }
+
+    #[test]
+    fn start() {
+        let config = Config {
+            path: "data/images".into(),
+            start: Some(3522),
+            end: None,
+        };
+        assert_eq!(6, config.paths().unwrap().len());
     }
 }
