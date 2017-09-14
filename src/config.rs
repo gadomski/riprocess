@@ -80,11 +80,18 @@ impl Config {
     /// let image_list = config.image_list().unwrap().collect::<Vec<_>>();
     /// ```
     pub fn image_list(&self) -> Result<ImageList> {
-        let _ = self.images.paths()?;
-        let _ = self.timestamps
+        let paths = self.images.paths()?;
+        let timestamps = self.timestamps
             .timestamps()
             .and_then(|timestamps| self.records.adjust_timestamps(&timestamps))?;
-        unimplemented!()
+        if paths.len() != timestamps.len() {
+            Err(Error::TimestampCountMismatch {
+                    timestamps: timestamps.len(),
+                    images: paths.len(),
+                })
+        } else {
+            Ok(ImageList { iter: paths.into_iter().zip(timestamps.into_iter()) })
+        }
     }
 }
 
@@ -105,7 +112,6 @@ mod tests {
     use super::*;
 
     #[test]
-    #[ignore]
     fn image_list() {
         let config = Config::from_path("data/config.toml").unwrap();
         let images = config.image_list().unwrap().collect::<Vec<_>>();
@@ -124,7 +130,6 @@ mod tests {
     }
 
     #[test]
-    #[ignore]
     fn record_count_mismatch() {
         let mut config = Config::from_path("data/config.toml").unwrap();
         config.records.start_times = vec![1.];
@@ -132,7 +137,6 @@ mod tests {
     }
 
     #[test]
-    #[ignore]
     fn image_count_mismatch() {
         let mut config = Config::from_path("data/config.toml").unwrap();
         config.images.end = None;
@@ -140,7 +144,6 @@ mod tests {
     }
 
     #[test]
-    #[ignore]
     fn no_images() {
         let mut config = Config::from_path("data/config.toml").unwrap();
         config.images.path = "data".into();

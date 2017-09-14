@@ -1,12 +1,12 @@
 [images]
 path = "data/images"
-first_image_number = 3522
-last_image_number = 3525
+start = 3522
+end = 3525
 
 [timestamps]
 path = "data/timestamps"
-first_timestamp_file_name = "170621_202939.eif"
-last_timestamp_file_name = "170621_203040.eif"
+start = "170621_202939.eif"
+end = "170621_203040.eif"
 
 [records]
 start_times = [ 332978.669, 333039.279 ]
